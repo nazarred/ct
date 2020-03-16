@@ -2,6 +2,7 @@ import functools
 import os
 import json
 import pathlib
+from enum import Enum
 
 from PyQt5 import (
     uic,
@@ -19,49 +20,13 @@ class Config:
     UNITS_DATA_JSON = "data/units.json"
 
 
-class ExtendedComboBox(QtWidgets.QComboBox):
-    def __init__(self, parent=None):
-        super(ExtendedComboBox, self).__init__(parent)
+class CrsType(Enum):
 
-        self.setFocusPolicy(Qt.StrongFocus)
-        self.setEditable(True)
-
-        # add a filter model to filter matching items
-        self.pFilterModel = QSortFilterProxyModel(self)
-        self.pFilterModel.setFilterCaseSensitivity(Qt.CaseInsensitive)
-        self.pFilterModel.setSourceModel(self.model())
-
-        # add a completer, which uses the filter model
-        self.completer = QtWidgets.QCompleter(self.pFilterModel, self)
-        # always show all (filtered) completions
-        self.completer.setCompletionMode(QtWidgets.QCompleter.UnfilteredPopupCompletion)
-        self.setCompleter(self.completer)
-
-        # connect signals
-        self.lineEdit().textEdited.connect(self.pFilterModel.setFilterFixedString)
-        self.completer.activated.connect(self.on_completer_activated)
-
-
-    # on selection of an item from the completer, select the corresponding item from combobox
-    def on_completer_activated(self, text):
-        if text:
-            index = self.findText(text)
-            self.setCurrentIndex(index)
-            self.activated[str].emit(self.itemText(index))
-
-
-    # on model change, update the models of the filter and completer as well
-    def setModel(self, model):
-        super(ExtendedComboBox, self).setModel(model)
-        self.pFilterModel.setSourceModel(model)
-        self.completer.setModel(self.pFilterModel)
-
-
-    # on model column change, update the model column of the filter and completer as well
-    def setModelColumn(self, column):
-        self.completer.setCompletionColumn(column)
-        self.pFilterModel.setFilterKeyColumn(column)
-        super(ExtendedComboBox, self).setModelColumn(column)
+    Projected = "projected"
+    Geographic2d = 'geographic 2d'
+    Geographic3d = 'geographic 3d'
+    Compound = 'compound'
+    Vertical = 'vertical'
 
 
 class MainWindow(QtWidgets.QMainWindow):
@@ -75,6 +40,8 @@ class MainWindow(QtWidgets.QMainWindow):
     comboBoxUnitsInH: QtWidgets.QComboBox
     comboBoxGeoidInH: QtWidgets.QComboBox
     comboBoxGeoidOutH: QtWidgets.QComboBox
+    tabWidgetInputCrs = QtWidgets.QTabWidget
+    tabWidgetOutputCrs = QtWidgets.QTabWidget
 
     def __init__(self):
         super(MainWindow, self).__init__()
@@ -109,6 +76,20 @@ class MainWindow(QtWidgets.QMainWindow):
         self.setup_crs_combobox()
         self.setup_units_combobox()
 
+        # crs signals
+        self.comboBoxCrsInH.currentIndexChanged.connect(lambda: self.crs_changed(self.comboBoxCrsInH, self.comboBoxUnitsInH))
+        self.comboBoxCrsOutH.currentIndexChanged.connect(lambda: self.crs_changed(self.comboBoxCrsOutH, self.comboBoxUnitsOutH))
+        self.comboBoxCrsInV.currentIndexChanged.connect(lambda: self.crs_changed(self.comboBoxCrsInV, self.comboBoxUnitsInV))
+        self.comboBoxCrsOutV.currentIndexChanged.connect(lambda: self.crs_changed(self.comboBoxCrsOutV, self.comboBoxUnitsOutV))
+        # TODO set default crs
+
+    def crs_changed(self, crs_combobox: QtWidgets.QComboBox, unit_combobox: QtWidgets.QComboBox):
+        # populate units depends on the crs
+        current_data = crs_combobox.currentData()
+        print(crs_combobox.objectName())
+        unit_data = f"{current_data['units']['auth_name']}:{current_data['units']['code']}"
+        unit_combobox.setCurrentIndex(unit_combobox.findData(unit_data, flags=QtCore.Qt.MatchFixedString))
+
     @QtCore.pyqtSlot(float, float)
     def onMapMove(self, lat, lng):
         self.label.setText("Lng: {:.5f}, Lat: {:.5f}".format(lng, lat))
@@ -122,43 +103,58 @@ class MainWindow(QtWidgets.QMainWindow):
         # self.comboBoxCrsInH.currentTextChanged.connect(self.filter_compobox)
         full_path = pathlib.Path(Config.CRS_DATA_JSON)
         crss = json.loads(full_path.read_text())
-        # self.comboBoxCrsInH.hide()
-        # combo = ExtendedComboBox(self.tabCrsInHV)
-        # combo.setGeometry(QtCore.QRect(10, 40, 201, 31))
-        # combo.setEditable(True)
-        # combo.setObjectName("comboBoxCrsH")
-        # self.comboBoxCrsInH = combo
 
         for crs in crss:
             crs_str = f"{crs['auth_name']}:{crs['code']} {crs['name']}"
             if crs["type"] in ["projected", "geographic 2d"]:
                 self.comboBoxCrsInH.addItem(
-                    crs_str, {"auth_name": crs["auth_name"], "code": crs["code"]}
+                    crs_str,
+                    {
+                        "auth_name": crs["auth_name"],
+                        "code": crs["code"],
+                        "type": crs["type"],
+                        "units": crs["h_units"],
+                    },
                 )
                 self.comboBoxCrsOutH.addItem(
-                    crs_str, {"auth_name": crs["auth_name"], "code": crs["code"]}
+                    crs_str,
+                    {
+                        "auth_name": crs["auth_name"],
+                        "code": crs["code"],
+                        "type": crs["type"],
+                        "units": crs["h_units"],
+                    },
                 )
             if crs["type"] in ["vertical", "geographic 3d"]:
                 self.comboBoxCrsInV.addItem(
-                    crs_str, {"auth_name": crs["auth_name"], "code": crs["code"]}
+                    crs_str,
+                    {
+                        "auth_name": crs["auth_name"],
+                        "code": crs["code"],
+                        "type": crs["type"],
+                        "units": crs["v_units"],
+                    },
                 )
                 self.comboBoxCrsOutV.addItem(
-                    crs_str, {"auth_name": crs["auth_name"], "code": crs["code"]}
+                    crs_str,
+                    {
+                        "auth_name": crs["auth_name"],
+                        "code": crs["code"],
+                        "type": crs["type"],
+                        "units": crs["v_units"],
+                    },
                 )
 
     def setup_units_combobox(self):
         full_path = pathlib.Path(Config.UNITS_DATA_JSON)
         units = json.loads(full_path.read_text())
         for unit in units:
+            data = f"{unit['auth_name']}:{unit['code']}"
             unit_name = f"{unit['name']}  ({unit['linear_units_conv']} m)"
-            self.comboBoxUnitsInH.addItem(unit_name, unit)
-            self.comboBoxUnitsOutH.addItem(unit_name, unit)
-            self.comboBoxUnitsInV.addItem(unit_name, unit)
-            self.comboBoxUnitsOutV.addItem(unit_name, unit)
-
-    def filter_compobox(self):
-        print("changed")
-
+            self.comboBoxUnitsInH.addItem(unit_name, data)
+            self.comboBoxUnitsOutH.addItem(unit_name, data)
+            self.comboBoxUnitsInV.addItem(unit_name, data)
+            self.comboBoxUnitsOutV.addItem(unit_name, data)
 
 
 if __name__ == "__main__":

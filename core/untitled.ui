@@ -454,9 +454,9 @@
     </property>
     <layout class="QHBoxLayout" name="horizontalLayout_10">
      <item>
-      <widget class="QTableWidget" name="tableWidgetInputCrs">
+      <widget class="QTableWidget" name="tableWidgetInCrs">
        <property name="rowCount">
-        <number>1</number>
+        <number>2</number>
        </property>
        <attribute name="horizontalHeaderCascadingSectionResizes">
         <bool>false</bool>
@@ -464,6 +464,7 @@
        <attribute name="verticalHeaderCascadingSectionResizes">
         <bool>false</bool>
        </attribute>
+       <row/>
        <row/>
        <column>
         <property name="text">
@@ -483,14 +484,39 @@
       </widget>
      </item>
      <item>
-      <widget class="QPushButton" name="pushButton">
+      <widget class="QPushButton" name="pushButtonConvert">
        <property name="text">
-        <string>PushButton</string>
+        <string>Convert</string>
        </property>
       </widget>
      </item>
      <item>
-      <widget class="QTableWidget" name="tableWidgetOutputCrs"/>
+      <widget class="QTableWidget" name="tableWidgetOutCrs">
+       <property name="rowCount">
+        <number>0</number>
+       </property>
+       <attribute name="horizontalHeaderCascadingSectionResizes">
+        <bool>false</bool>
+       </attribute>
+       <attribute name="verticalHeaderCascadingSectionResizes">
+        <bool>false</bool>
+       </attribute>
+       <column>
+        <property name="text">
+         <string>Longitude</string>
+        </property>
+       </column>
+       <column>
+        <property name="text">
+         <string>Latitude</string>
+        </property>
+       </column>
+       <column>
+        <property name="text">
+         <string>Altitude</string>
+        </property>
+       </column>
+      </widget>
      </item>
     </layout>
    </widget>

@@ -40,8 +40,11 @@ class MainWindow(QtWidgets.QMainWindow):
     comboBoxUnitsInH: QtWidgets.QComboBox
     comboBoxGeoidInH: QtWidgets.QComboBox
     comboBoxGeoidOutH: QtWidgets.QComboBox
-    tabWidgetInputCrs = QtWidgets.QTabWidget
-    tabWidgetOutputCrs = QtWidgets.QTabWidget
+    tabWidgetInputCrs: QtWidgets.QTabWidget
+    tabWidgetOutputCrs: QtWidgets.QTabWidget
+    pushButtonConvert: QtWidgets.QPushButton
+    tableWidgetInCrs: QtWidgets.QTableWidget
+    tableWidgetOutCrs: QtWidgets.QTableWidget
 
     def __init__(self):
         super(MainWindow, self).__init__()
@@ -70,8 +73,8 @@ class MainWindow(QtWidgets.QMainWindow):
 
         self.verticalLayoutMap.addWidget(view)
 
-        panToParis = functools.partial(self.panMap, 2.3272, 48.8620)
-        self.pushButton.clicked.connect(panToParis)
+        # panToParis = functools.partial(self.panMap, 2.3272, 48.8620)
+        # self.pushButton.clicked.connect(panToParis)
 
         self.setup_crs_combobox()
         self.setup_units_combobox()
@@ -82,6 +85,22 @@ class MainWindow(QtWidgets.QMainWindow):
         self.comboBoxCrsInV.currentIndexChanged.connect(lambda: self.crs_changed(self.comboBoxCrsInV, self.comboBoxUnitsInV))
         self.comboBoxCrsOutV.currentIndexChanged.connect(lambda: self.crs_changed(self.comboBoxCrsOutV, self.comboBoxUnitsOutV))
         # TODO set default crs
+
+        self.pushButtonConvert.clicked.connect(lambda: self.convert_coord())
+
+    def convert_coord(self):
+        self.tableWidgetOutCrs.clearContents()
+        # TODO need to clear rows in tableWidgetOutCrs
+        for row in range(self.tableWidgetInCrs.rowCount()):
+            x = self.tableWidgetInCrs.item(row, 0).text()
+            y = self.tableWidgetInCrs.item(row, 1).text()
+            z = self.tableWidgetInCrs.item(row, 2).text()
+            print((x, y, z))
+            self.tableWidgetOutCrs.insertRow(row)
+            self.tableWidgetOutCrs.setItem(row, 0, QtWidgets.QTableWidgetItem(x))
+            self.tableWidgetOutCrs.setItem(row, 1, QtWidgets.QTableWidgetItem(y))
+            self.tableWidgetOutCrs.setItem(row, 2, QtWidgets.QTableWidgetItem(z))
+
 
     def crs_changed(self, crs_combobox: QtWidgets.QComboBox, unit_combobox: QtWidgets.QComboBox):
         # populate units depends on the crs
